@@ -1,0 +1,18 @@
+runtime: nodejs18
+env: standard
+instance_class: F1
+handlers:
+  - url: .*
+    script: auto
+  - url: .*
+    script: auto
+  - url: .*
+    script: auto
+  - url: .*
+    script: auto
+automatic_scaling:
+  min_idle_instances: automatic
+  max_idle_instances: automatic
+  min_pending_latency: automatic
+  max_pending_latency: automatic
+service_account: recurlyjs-checkout-0424@appspot.gserviceaccount.com
