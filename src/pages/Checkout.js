@@ -6,6 +6,8 @@ import { CardElement, useRecurly, useCheckoutPricing, ThreeDSecureAction } from 
 import { PricingTable } from '../components/plans/checkout/Tables';
 import { FormInput, FormInputRow } from '../components/FormComponents';
 
+import PaymentMethods from '../components/PaymentMethods';
+
 import uuid from 'react-uuid';
 
 export default function Checkout() {
@@ -32,10 +34,10 @@ export default function Checkout() {
     const [purchaseReqBody, setPurchaseReqBody] = useState('');
 
     {/*        */ }
-    const [payPalToken, setPayPalToken] = useState('');
+
     const [paymentMethodCC, setPaymentMethodCC] = useState(true)
     const [paymentMethodBank, setPaymentMethodBank] = useState(false)
-    const [isPayPal, setIsPayPal] = useState(false);
+
     const [selectedOption, setSelectedOption] = useState(null);
 
     const handleOptionChange = (option) => {
@@ -47,7 +49,6 @@ export default function Checkout() {
     };
 
     const [paymentMethod, setPaymentMethod] = useState('');
-
 
     {/*        */ }
     const [accountAddress, setAccountAddress] = useState({ a: '' })
@@ -113,16 +114,7 @@ export default function Checkout() {
     {/*        */ }
     const handleSubmit = event => {
         if (event.preventDefault) event.preventDefault();
-        if (selectedOption === 'paypal') {
-            const body = ({
-                accountCode: uuid(),
-                accountInfo: accountFormState,
-                token_id: payPalToken,
-                plan_code: pricingFormState.plan, plan_quantity: pricingFormState.planQuantity,
-                plan_addons: pricingFormState.addons
-            })
-            sendBody({ ...body })
-        } else if (selectedOption === 'bank') {
+        if (selectedOption === 'bank') {
             recurly.bankAccount.token(formRef.current, (err, token) => {
                 if (err) console.log('[error]', err);
                 else {
@@ -237,62 +229,20 @@ export default function Checkout() {
         return { ...purchaseReqBody }
     }
 
-    {/* Paypal      */ }
-    const PayPalRecurly = () => {
-        const payPal = recurly.PayPal({
-            display: { displayName: 'Test' }
-        });
-        useEffect(() => {
-            payPal.on('token', token => {
-                // handleSubmit();
-                console.log('Token: ', token.id);
-                setIsPayPal(true);
-                setPayPalToken(token.id)
-                //handleSubmit();
-            });
-            payPal.on('error', error => {
-                throw error;
-            });
-            payPal.on('cancel', () => {
-                console.log('Cancelled');
-            });
-            payPal.on('ready', () => {
-                console.log('Ready');
-            });
-        }, [payPal]);
-
-        const handleClick = async () => {
-            await payPal.start();
-        };
-
-        return (
-            <button
-                className='paypalBtn'
-                onClick={handleClick}>
-                PayPal
-            </button>
-        );
-    };
-
     useEffect(() => {
         if (paymentMethod === 'bank') {
             setPaymentMethodBank(true)
-            setIsPayPal(false)
-            setPaymentMethodCC(false)
-        } else if (paymentMethod === 'paypal') {
-            setPaymentMethodBank(false)
-            setIsPayPal(true)
+
             setPaymentMethodCC(false)
         } else
             setPaymentMethodBank(false)
-        setIsPayPal(false)
+
         setPaymentMethodCC(true)
     }, [setPaymentMethod])
 
 
     return (
         <div className='container'>
-
             <form ref={formRef} onSubmit={handleSubmit} className='main-content-row w-100' style={{ marginTop: '5%' }}>
                 <div className='checkout-col'>
                     <>
@@ -316,7 +266,6 @@ export default function Checkout() {
                                 dataRecurly="last_name"
                             />
                         </div>
-
                         <div className='form-row'>
                             <FormInput
                                 label={'Address 1'}
@@ -367,12 +316,65 @@ export default function Checkout() {
                             />
                         </div>
                     </>
-
+                    {/*   payment method selector */}
+                    <PaymentMethods handleOptionChange={handleOptionChange} selectedOption={selectedOption} />
                     {/*   payment method selector  */}
                     <div className='payment-form-container '>
-
-                        <CardElement />
-
+                        {selectedOption && (
+                            <>
+                                {/* Render the form for the selected payment option */}
+                                {selectedOption === 'bank' ?
+                                    <>
+                                        <FormInput
+                                            label={'Name on account'}
+                                            //placeholder={'Test User'}
+                                            defaultValue={'Test User'}
+                                            name='name_on_account'
+                                            onChange={e => handleAccountForm('name_on_account', e.target.value)}
+                                            type={'text'}
+                                            dataRecurly="name_on_account"
+                                        />
+                                        <FormInput
+                                            label={'Account Number'}
+                                            placeholder={'Account Number'}
+                                            defaultValue={'123456789'}
+                                            name='account_number'
+                                            onChange={e => handleAccountForm('account_number', e.target.value)}
+                                            type={'text'}
+                                            dataRecurly="account_number"
+                                        />
+                                        <FormInput
+                                            label={'Account Number Confirmation'}
+                                            placeholder={'Account Number Confirmation'}
+                                            defaultValue={'123456789'}
+                                            name='account_number_confirmation'
+                                            onChange={e => handleAccountForm('account_number_confirmation', e.target.value)}
+                                            type={'text'}
+                                            dataRecurly="account_number_confirmation"
+                                        />
+                                        <FormInput
+                                            label={'Routing number'}
+                                            placeholder={'Routing number'}
+                                            defaultValue={'011000138'}
+                                            name='routing_number'
+                                            onChange={e => handleAccountForm('routing_number', e.target.value)}
+                                            type={'text'}
+                                            dataRecurly="routing_number"
+                                        />
+                                        <FormInput
+                                            label={'Account type'}
+                                            defaultValue={'checking'}
+                                            name='account_type'
+                                            onChange={e => handleAccountForm('account_type', e.target.value)}
+                                            type={'text'}
+                                            dataRecurly="account_type"
+                                        />
+                                    </>
+                                    :
+                                    <CardElement />
+                                }
+                            </>
+                        )}
                     </div>
                 </div>
                 <div className='container-cart checkout-col'>
@@ -395,9 +397,9 @@ export default function Checkout() {
                         </div>
                     ) : null
                 }
-            </form >
-        </div >
-    )
+            </form>
+        </div>
+    );
 }
 
 
